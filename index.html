@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="和暦早見表">
+<meta name="theme-color" content="#1a1a2e">
+<title>西暦・和暦 早見表</title>
+<style>
+:root {
+  --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#16213e;
+  --border:rgba(255,255,255,0.08); --text:#edf2f4; --text-dim:#8d99ae;
+  --t:#e9c46a; --s:#457b9d; --h:#2a9d8f; --r:#e63946;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+header{background:rgba(15,15,26,.96);border-bottom:1px solid var(--border);padding:10px 14px 8px;flex-shrink:0;z-index:50}
+.hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+h1{font-size:17px;font-weight:700;letter-spacing:.04em}
+.gear{width:34px;height:34px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sw{position:relative}
+#search{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px 34px 8px 12px;color:var(--text);font-size:15px;outline:none;font-family:inherit}
+#search:focus{border-color:var(--s)}
+#search::placeholder{color:var(--text-dim)}
+.si{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:15px;pointer-events:none}
+
+.pills{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:rgba(15,15,26,.96);border-bottom:1px solid var(--border)}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--text-dim);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
+.pill:active{transform:scale(.94)}
+.pill.on-all{background:var(--text);color:var(--bg);border-color:var(--text)}
+.pill.on-t{background:var(--t);color:#1a1000;border-color:var(--t)}
+.pill.on-s{background:var(--s);color:#fff;border-color:var(--s)}
+.pill.on-h{background:var(--h);color:#fff;border-color:var(--h)}
+.pill.on-r{background:var(--r);color:#fff;border-color:var(--r)}
+
+.tw{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.clabel{font-size:11px;color:var(--text-dim);text-align:right;padding:4px 14px 2px}
+table{width:100%;border-collapse:separate;border-spacing:0 3px;padding:0 10px 80px}
+thead th{font-size:11px;font-weight:700;letter-spacing:.08em;text-align:center;padding:4px 4px 6px;color:var(--text-dim)}
+.th-t{color:var(--t)} .th-s{color:var(--s)} .th-h{color:var(--h)} .th-r{color:var(--r)}
+tbody tr{background:var(--surface)}
+tbody tr:active{background:var(--surface2)}
+tbody td{padding:10px 6px;text-align:center;font-size:15px}
+tbody td:first-child{border-radius:10px 0 0 10px;padding-left:12px}
+tbody td:last-child{border-radius:0 10px 10px 0;padding-right:12px}
+.c-w{color:var(--text);font-weight:700;font-size:16px}
+.c-t{color:#f0cb71} .c-s{color:#90c4e4} .c-h{color:#6ecfc8} .c-r{color:#f4a0a7;font-weight:700}
+.c-dim{color:var(--text-dim);font-size:13px}
+tr.today{background:#1e0a10;box-shadow:0 0 0 1.5px var(--r)}
+tr.today .c-w{color:var(--r)}
+.dot::before{content:'';display:inline-block;width:6px;height:6px;background:var(--r);border-radius:50%;margin-right:4px;animation:blink 1.4s ease-in-out infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+tr.hl{box-shadow:0 0 0 1.5px var(--h)}
+tr.hid{display:none}
+.nores{text-align:center;color:var(--text-dim);padding:48px;font-size:14px;display:none}
+
+.bb{position:fixed;bottom:0;left:0;right:0;background:rgba(15,15,26,.96);border-top:1px solid var(--border);padding:8px 14px;padding-bottom:calc(8px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:8px;z-index:50}
+.bi{flex:1}
+.by{font-size:22px;font-weight:700;color:var(--r);line-height:1}
+.be{font-size:11px;color:var(--text-dim);margin-top:2px}
+.jbtn{background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text-dim);font-size:13px;padding:8px 14px;cursor:pointer;font-family:inherit}
+
+.ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);display:none;align-items:flex-end}
+.ov.open{display:flex}
+.modal{width:100%;background:#1e1e30;border-radius:20px 20px 0 0;padding:0 0 calc(24px + env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto}
+.mhandle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
+.mtitle{font-size:17px;font-weight:700;padding:0 20px 16px;border-bottom:1px solid var(--border)}
+.srow{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px}
+.sdot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.slabel{flex:1;font-size:15px}
+.ssub{font-size:12px;color:var(--text-dim);margin-top:2px}
+.tog{width:48px;height:28px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--h);border-color:var(--h)}
+.tog::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:var(--text-dim);top:3px;left:3px;transition:transform .2s,background .2s}
+.tog.on::after{transform:translateX(20px);background:#fff}
+.mcbtn{width:calc(100% - 40px);margin:16px 20px 0;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text-dim);font-size:15px;padding:14px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1>📅 西暦・和暦 早見表</h1>
+    <div class="gear" onclick="openSettings()">⚙️</div>
+  </div>
+  <div class="sw">
+    <input id="search" type="text" inputmode="numeric"
+      placeholder="年を検索（例：2024 / R6 / H30 / S40 / T10）">
+    <span class="si">🔍</span>
+  </div>
+</header>
+
+<!-- ピルの順番: すべて → 大正 → 昭和 → 平成 → 令和 (列の順と一致) -->
+<div class="pills" id="pills">
+  <button class="pill on-all" onclick="filterEra('all',this)">すべて</button>
+  <button class="pill" id="pill-t" onclick="filterEra('t',this)">大正</button>
+  <button class="pill" id="pill-s" onclick="filterEra('s',this)">昭和</button>
+  <button class="pill" id="pill-h" onclick="filterEra('h',this)">平成</button>
+  <button class="pill" id="pill-r" onclick="filterEra('r',this)">令和</button>
+</div>
+
+<div class="tw" id="tableWrap">
+  <div class="clabel" id="clabel"></div>
+  <table>
+    <thead><tr id="thead"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="nores" id="nores">該当なし</div>
+</div>
+
+<div class="bb">
+  <div class="bi">
+    <div class="by" id="by">—</div>
+    <div class="be" id="be">今年の和暦</div>
+  </div>
+  <button class="jbtn" onclick="jumpToday()">📍 今年</button>
+</div>
+
+<div class="ov" id="ov" onclick="outsideClose(event)">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">⚙️ 設定 — 表示する和暦</div>
+    <div class="srow">
+      <div class="sdot" style="background:var(--r)"></div>
+      <div class="slabel"><div>令和（R）</div><div class="ssub">2019年〜</div></div>
+      <div class="tog on" id="tog-r" onclick="toggleEra('r',this)"></div>
+    </div>
+    <div class="srow">
+      <div class="sdot" style="background:var(--h)"></div>
+      <div class="slabel"><div>平成（H）</div><div class="ssub">1989〜2019年</div></div>
+      <div class="tog on" id="tog-h" onclick="toggleEra('h',this)"></div>
+    </div>
+    <div class="srow">
+      <div class="sdot" style="background:var(--s)"></div>
+      <div class="slabel"><div>昭和（S）</div><div class="ssub">1926〜1989年</div></div>
+      <div class="tog on" id="tog-s" onclick="toggleEra('s',this)"></div>
+    </div>
+    <div class="srow">
+      <div class="sdot" style="background:var(--t)"></div>
+      <div class="slabel"><div>大正（T）</div><div class="ssub">1912〜1926年</div></div>
+      <div class="tog on" id="tog-t" onclick="toggleEra('t',this)"></div>
+    </div>
+    <button class="mcbtn" onclick="closeSettings()">閉じる</button>
+  </div>
+</div>
+
+<script>
+const THISYEAR = new Date().getFullYear();
+const shown = {t:true, s:true, h:true, r:true};
+let currentEra = 'all';
+
+// 各和暦の通算年数を「その年が何年目か」として常に計算する
+// 和暦が始まっていない年でも "仮想的に何年目か" を表示する
+function eraYear(w, start) {
+  return w - start + 1;
+}
+
+// データ生成: 1912〜2040
+// 各和暦は開始年以降は常に計算して表示する（終了後も継続表示）
+// 表示例: 2024年 → T113 S99 H36 R6 をすべて表示
+const DATA = [];
+for (let w = 1912; w <= 2040; w++) {
+  // 大正: 1912〜 (実際は1912-1926だが仮想年も計算)
+  const tN = eraYear(w, 1912);   // T1=1912
+  // 昭和: 1926〜 (実際は1926-1989)
+  const sN = w >= 1926 ? eraYear(w, 1926) : null;
+  // 平成: 1989〜 (実際は1989-2019)
+  const hN = w >= 1989 ? eraYear(w, 1989) : null;
+  // 令和: 2019〜
+  const rN = w >= 2019 ? eraYear(w, 2019) : null;
+
+  DATA.push({
+    w,
+    t: 'T' + tN,
+    s: sN != null ? 'S' + sN : null,
+    h: hN != null ? 'H' + hN : null,
+    r: rN != null ? 'R' + rN : null,
+  });
+}
+
+// 実際に使われていた和暦かどうか（薄く表示するかの判定）
+function isActualEra(w, era) {
+  if (era === 't') return w >= 1912 && w <= 1926;
+  if (era === 's') return w >= 1926 && w <= 1989;
+  if (era === 'h') return w >= 1989 && w <= 2019;
+  if (era === 'r') return w >= 2019;
+  return false;
+}
+
+function buildHeader() {
+  const tr = document.getElementById('thead');
+  tr.innerHTML = '<th style="color:var(--text-dim)">西暦</th>' +
+    (shown.t ? '<th class="th-t">大正</th>' : '') +
+    (shown.s ? '<th class="th-s">昭和</th>' : '') +
+    (shown.h ? '<th class="th-h">平成</th>' : '') +
+    (shown.r ? '<th class="th-r">令和</th>' : '');
+}
+
+function buildRows() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  DATA.forEach(function(row) {
+    var w = row.w;
+    var tr = document.createElement('tr');
+    tr.dataset.w = w;
+    // 検索用: 実際の和暦のみ検索対象にする
+    tr.dataset.t = row.t.toLowerCase();
+    tr.dataset.s = (row.s || '').toLowerCase();
+    tr.dataset.h = (row.h || '').toLowerCase();
+    tr.dataset.r = (row.r || '').toLowerCase();
+
+    if (w === THISYEAR) tr.classList.add('today');
+
+    var wLabel = (w === THISYEAR)
+      ? '<span class="dot">' + w + '</span>'
+      : String(w);
+
+    var cells = '<td class="c-w">' + wLabel + '</td>';
+
+    if (shown.t) {
+      var actual_t = isActualEra(w, 't');
+      var cls = actual_t ? 'c-t' : 'c-dim';
+      cells += '<td class="' + cls + '">' + row.t + '</td>';
+    }
+    if (shown.s) {
+      if (row.s) {
+        var actual_s = isActualEra(w, 's');
+        var cls = actual_s ? 'c-s' : 'c-dim';
+        cells += '<td class="' + cls + '">' + row.s + '</td>';
+      } else {
+        cells += '<td class="c-dim">—</td>';
+      }
+    }
+    if (shown.h) {
+      if (row.h) {
+        var actual_h = isActualEra(w, 'h');
+        var cls = actual_h ? 'c-h' : 'c-dim';
+        cells += '<td class="' + cls + '">' + row.h + '</td>';
+      } else {
+        cells += '<td class="c-dim">—</td>';
+      }
+    }
+    if (shown.r) {
+      if (row.r) {
+        cells += '<td class="c-r">' + row.r + '</td>';
+      } else {
+        cells += '<td class="c-dim">—</td>';
+      }
+    }
+
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateTodayBar() {
+  var row = DATA.find(function(d) { return d.w === THISYEAR; });
+  if (!row) return;
+  // 最新の実際の和暦を大きく表示
+  var mainEra = row.r || row.h || row.s || row.t || '';
+  document.getElementById('by').textContent = mainEra;
+  // 全和暦を列挙
+  var parts = [];
+  if (row.r) parts.push('令和' + row.r.slice(1) + '年');
+  if (row.h) parts.push('平成' + row.h.slice(1) + '年');
+  if (row.s) parts.push('昭和' + row.s.slice(1) + '年');
+  parts.push('大正' + row.t.slice(1) + '年');
+  document.getElementById('be').textContent = parts.join(' / ');
+}
+
+function applyFilters(q, era) {
+  var ql = q.toLowerCase().replace(/\s/g, '');
+  var rows = document.querySelectorAll('#tbody tr');
+  var count = 0;
+  rows.forEach(function(tr) {
+    var w = tr.dataset.w;
+    var t = tr.dataset.t, s = tr.dataset.s, h = tr.dataset.h, r = tr.dataset.r;
+    // フィルタ: その和暦が「実際に使われていた年」に絞る
+    var eraMatch = true;
+    if (era === 't') eraMatch = parseInt(w) >= 1912 && parseInt(w) <= 1926;
+    else if (era === 's') eraMatch = parseInt(w) >= 1926 && parseInt(w) <= 1989;
+    else if (era === 'h') eraMatch = parseInt(w) >= 1989 && parseInt(w) <= 2019;
+    else if (era === 'r') eraMatch = parseInt(w) >= 2019;
+
+    var sm = !ql || w.includes(ql) || t.includes(ql) || s.includes(ql) || h.includes(ql) || r.includes(ql);
+    var show = eraMatch && sm;
+    tr.classList.toggle('hid', !show);
+    if (show) {
+      count++;
+      tr.classList.toggle('hl', !!ql && !tr.classList.contains('today'));
+    } else {
+      tr.classList.remove('hl');
+    }
+  });
+  document.getElementById('nores').style.display = count === 0 ? 'block' : 'none';
+  var badge = document.getElementById('clabel');
+  badge.textContent = (ql || era !== 'all') ? count + ' 件' : '';
+}
+
+function filterEra(era, btn) {
+  currentEra = era;
+  document.querySelectorAll('.pill').forEach(function(b) { b.className = 'pill'; });
+  btn.classList.add('on-' + era);
+  applyFilters(document.getElementById('search').value.trim(), era);
+  var first = document.querySelector('#tbody tr:not(.hid)');
+  if (first) setTimeout(function() { first.scrollIntoView({behavior:'smooth',block:'start'}); }, 50);
+}
+
+function jumpToday() {
+  document.getElementById('search').value = '';
+  filterEra('all', document.querySelector('.pill'));
+  setTimeout(function() {
+    var tr = document.querySelector('.today');
+    if (tr) tr.scrollIntoView({behavior:'smooth',block:'center'});
+  }, 60);
+}
+
+function updatePillVisibility() {
+  ['t','s','h','r'].forEach(function(e) {
+    var p = document.getElementById('pill-' + e);
+    if (p) p.style.display = shown[e] ? '' : 'none';
+  });
+  if (currentEra !== 'all' && !shown[currentEra]) {
+    filterEra('all', document.querySelector('.pill'));
+  }
+}
+
+function render() {
+  buildHeader();
+  buildRows();
+  applyFilters(document.getElementById('search').value.trim(), currentEra);
+  updateTodayBar();
+  updatePillVisibility();
+}
+
+document.getElementById('search').addEventListener('input', function() {
+  applyFilters(this.value.trim(), currentEra);
+});
+
+function openSettings() { document.getElementById('ov').classList.add('open'); }
+function closeSettings() { document.getElementById('ov').classList.remove('open'); }
+function outsideClose(e) { if (e.target === document.getElementById('ov')) closeSettings(); }
+
+function toggleEra(era, tog) {
+  shown[era] = !shown[era];
+  tog.classList.toggle('on', shown[era]);
+  render();
+}
+
+render();
+setTimeout(function() {
+  var tr = document.querySelector('.today');
+  if (tr) tr.scrollIntoView({block:'center'});
+}, 200);
+</script>
+</body>
+</html>
