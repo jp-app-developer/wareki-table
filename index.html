@@ -51,6 +51,8 @@ h1{font-size:17px;font-weight:700;letter-spacing:.04em}
 table{width:100%;border-collapse:separate;border-spacing:0 3px;padding:0 10px 80px}
 thead th{font-size:11px;font-weight:700;letter-spacing:.08em;text-align:center;padding:4px 4px 6px;color:var(--text-dim)}
 .th-t{color:var(--t)} .th-s{color:var(--s)} .th-h{color:var(--h)} .th-r{color:var(--r)}
+.th-age{color:#a8dadc} .th-eto{color:#cdb4db}
+.c-age{color:#a8dadc;font-weight:600} .c-eto{color:#cdb4db;font-size:14px}
 tbody tr{background:var(--surface)}
 tbody tr:active{background:var(--surface2)}
 tbody td{padding:10px 6px;text-align:center;font-size:15px}
@@ -198,7 +200,7 @@ tr.hid{display:none}
 <div class="ov" id="ov" onclick="outsideClose(event)">
   <div class="modal">
     <div class="mhandle"></div>
-    <div class="mtitle">⚙️ 設定 — 表示する和暦</div>
+    <div class="mtitle">⚙️ 設定 — 表示する列</div>
     <div class="srow">
       <div class="sdot" style="background:var(--r)"></div>
       <div class="slabel"><div>令和（R）</div><div class="ssub">2019年〜</div></div>
@@ -219,19 +221,35 @@ tr.hid{display:none}
       <div class="slabel"><div>大正（T）</div><div class="ssub">1912〜1926年</div></div>
       <div class="tog on" id="tog-t" onclick="toggleEra('t',this)"></div>
     </div>
+    <div class="srow">
+      <div class="sdot" style="background:#a8dadc"></div>
+      <div class="slabel"><div>年齢</div><div class="ssub">満年齢（今年 - 生まれ年）</div></div>
+      <div class="tog on" id="tog-age" onclick="toggleEra('age',this)"></div>
+    </div>
+    <div class="srow">
+      <div class="sdot" style="background:#cdb4db"></div>
+      <div class="slabel"><div>干支（えと）</div><div class="ssub">子・丑・寅…</div></div>
+      <div class="tog on" id="tog-eto" onclick="toggleEra('eto',this)"></div>
+    </div>
     <button class="mcbtn" onclick="closeSettings()">閉じる</button>
   </div>
 </div>
 
 <script>
 const THISYEAR = new Date().getFullYear();
-const shown = {t:true, s:true, h:true, r:true};
+const shown = {t:true, s:true, h:true, r:true, age:true, eto:true};
 let currentEra = 'all';
 
 function eraYear(w, start) {
   return w - start + 1;
 }
 
+
+const ETO = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ETO_EN = ['ねずみ','うし','とら','うさぎ','たつ','へび','うま','ひつじ','さる','とり','いぬ','いのしし'];
+function getEto(y) { return ETO[(y - 4) % 12]; }
+function getEtoEn(y) { return ETO_EN[(y - 4) % 12]; }
+function getAge(y) { return THISYEAR - y; }
 const DATA = [];
 for (let w = 1912; w <= 2100; w++) {
   const tN = eraYear(w, 1912);
@@ -245,6 +263,9 @@ for (let w = 1912; w <= 2100; w++) {
     s: sN != null ? 'S' + sN : null,
     h: hN != null ? 'H' + hN : null,
     r: rN != null ? 'R' + rN : null,
+    eto: getEto(w),
+    etoEn: getEtoEn(w),
+    age: getAge(w),
   });
 }
 
@@ -262,7 +283,9 @@ function buildHeader() {
     (shown.t ? '<th class="th-t">大正</th>' : '') +
     (shown.s ? '<th class="th-s">昭和</th>' : '') +
     (shown.h ? '<th class="th-h">平成</th>' : '') +
-    (shown.r ? '<th class="th-r">令和</th>' : '');
+    (shown.r ? '<th class="th-r">令和</th>' : '') +
+    (shown.age ? '<th class="th-age">年齢</th>' : '') +
+    (shown.eto ? '<th class="th-eto">干支</th>' : '');
 }
 
 function buildRows() {
@@ -277,6 +300,7 @@ function buildRows() {
     tr.dataset.s = (row.s || '').toLowerCase();
     tr.dataset.h = (row.h || '').toLowerCase();
     tr.dataset.r = (row.r || '').toLowerCase();
+    tr.dataset.eto = row.eto + row.etoEn;
 
     if (w === THISYEAR) tr.classList.add('today');
 
@@ -317,6 +341,16 @@ function buildRows() {
       }
     }
 
+    if (shown.age) {
+      var ageVal = row.age;
+      var ageDisp = ageVal >= 0 ? ageVal + '歳' : '—';
+      var ageCls = (row.w === THISYEAR) ? 'c-age' : (ageVal < 0 ? 'c-dim' : 'c-age');
+      cells += '<td class="' + ageCls + '">' + (ageVal >= 0 ? ageDisp : '—') + '</td>';
+    }
+    if (shown.eto) {
+      cells += '<td class="c-eto" title="' + row.etoEn + '">' + row.eto + '</td>';
+    }
+
     tr.innerHTML = cells;
     tbody.appendChild(tr);
   });
@@ -348,7 +382,8 @@ function applyFilters(q, era) {
     else if (era === 'h') eraMatch = parseInt(w) >= 1989 && parseInt(w) <= 2019;
     else if (era === 'r') eraMatch = parseInt(w) >= 2019;
 
-    var sm = !ql || w.includes(ql) || t.includes(ql) || s.includes(ql) || h.includes(ql) || r.includes(ql);
+    var eto = tr.dataset.eto || '';
+    var sm = !ql || w.includes(ql) || t.includes(ql) || s.includes(ql) || h.includes(ql) || r.includes(ql) || eto.includes(ql);
     var show = eraMatch && sm;
     tr.classList.toggle('hid', !show);
     if (show) {
@@ -382,7 +417,7 @@ function jumpToday() {
 }
 
 function updatePillVisibility() {
-  ['t','s','h','r'].forEach(function(e) {
+  ['t','s','h','r','age','eto'].forEach(function(e) {
     var p = document.getElementById('pill-' + e);
     if (p) p.style.display = shown[e] ? '' : 'none';
   });
