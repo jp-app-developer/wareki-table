@@ -14,9 +14,17 @@
   --bg:#0f0f1a; --surface:#1a1a2e; --surface2:#16213e;
   --border:rgba(255,255,255,0.08); --text:#edf2f4; --text-dim:#8d99ae;
   --t:#e9c46a; --s:#457b9d; --h:#2a9d8f; --r:#e63946;
+  --max-w: 680px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── PC用: 中央カラムに収める ── */
+.center-col {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
 
 header{background:rgba(15,15,26,.96);border-bottom:1px solid var(--border);padding:10px 14px 8px;flex-shrink:0;z-index:50}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -79,23 +87,85 @@ tr.hid{display:none}
 .tog::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:var(--text-dim);top:3px;left:3px;transition:transform .2s,background .2s}
 .tog.on::after{transform:translateX(20px);background:#fff}
 .mcbtn{width:calc(100% - 40px);margin:16px 20px 0;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text-dim);font-size:15px;padding:14px;cursor:pointer;font-family:inherit}
+
+/* ── PC用 メディアクエリ ── */
+@media (min-width: 700px) {
+  /* 背景をPC用に見せる */
+  body {
+    background: #080810;
+  }
+
+  /* ヘッダー・ピルをセンタリング */
+  header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header > .center-col {
+    width: 100%;
+  }
+  .pills-inner {
+    display: flex;
+    justify-content: center;
+  }
+  .pills {
+    justify-content: center;
+  }
+
+  /* テーブルラッパーも中央 */
+  .tw-inner {
+    max-width: var(--max-w);
+    margin: 0 auto;
+  }
+
+  /* 行をすこし大きく */
+  tbody td {
+    font-size: 16px;
+    padding: 11px 8px;
+  }
+  thead th {
+    font-size: 12px;
+    padding: 6px 8px 8px;
+  }
+
+  /* ボトムバーも中央寄せ */
+  .bb {
+    justify-content: center;
+  }
+  .bb > .center-col {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: var(--max-w);
+  }
+  .bi { flex: 1; }
+
+  /* モーダルも幅を制限 */
+  .ov { justify-content: center; align-items: center; }
+  .modal {
+    max-width: var(--max-w);
+    border-radius: 20px;
+    margin: 0 auto;
+  }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="hrow">
-    <h1>📅 西暦・和暦 早見表</h1>
-    <div class="gear" onclick="openSettings()">⚙️</div>
-  </div>
-  <div class="sw">
-    <input id="search" type="text" inputmode="numeric"
-      placeholder="年を検索（例：2024 / R6 / H30 / S40 / T10）">
-    <span class="si">🔍</span>
+  <div class="center-col">
+    <div class="hrow">
+      <h1>📅 西暦・和暦 早見表</h1>
+      <div class="gear" onclick="openSettings()">⚙️</div>
+    </div>
+    <div class="sw">
+      <input id="search" type="text" inputmode="numeric"
+        placeholder="年を検索（例：2024 / R6 / H30 / S40 / T10）">
+      <span class="si">🔍</span>
+    </div>
   </div>
 </header>
 
-<!-- ピルの順番: すべて → 大正 → 昭和 → 平成 → 令和 (列の順と一致) -->
 <div class="pills" id="pills">
   <button class="pill on-all" onclick="filterEra('all',this)">すべて</button>
   <button class="pill" id="pill-t" onclick="filterEra('t',this)">大正</button>
@@ -105,20 +175,24 @@ tr.hid{display:none}
 </div>
 
 <div class="tw" id="tableWrap">
-  <div class="clabel" id="clabel"></div>
-  <table>
-    <thead><tr id="thead"></tr></thead>
-    <tbody id="tbody"></tbody>
-  </table>
-  <div class="nores" id="nores">該当なし</div>
+  <div class="tw-inner">
+    <div class="clabel" id="clabel"></div>
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="nores" id="nores">該当なし</div>
+  </div>
 </div>
 
 <div class="bb">
-  <div class="bi">
-    <div class="by" id="by">—</div>
-    <div class="be" id="be">今年の和暦</div>
+  <div class="center-col" style="display:flex;align-items:center;gap:8px;width:100%">
+    <div class="bi">
+      <div class="by" id="by">—</div>
+      <div class="be" id="be">今年の和暦</div>
+    </div>
+    <button class="jbtn" onclick="jumpToday()">📍 今年</button>
   </div>
-  <button class="jbtn" onclick="jumpToday()">📍 今年</button>
 </div>
 
 <div class="ov" id="ov" onclick="outsideClose(event)">
@@ -154,24 +228,15 @@ const THISYEAR = new Date().getFullYear();
 const shown = {t:true, s:true, h:true, r:true};
 let currentEra = 'all';
 
-// 各和暦の通算年数を「その年が何年目か」として常に計算する
-// 和暦が始まっていない年でも "仮想的に何年目か" を表示する
 function eraYear(w, start) {
   return w - start + 1;
 }
 
-// データ生成: 1912〜2040
-// 各和暦は開始年以降は常に計算して表示する（終了後も継続表示）
-// 表示例: 2024年 → T113 S99 H36 R6 をすべて表示
 const DATA = [];
 for (let w = 1912; w <= 2100; w++) {
-  // 大正: 1912〜 (実際は1912-1926だが仮想年も計算)
-  const tN = eraYear(w, 1912);   // T1=1912
-  // 昭和: 1926〜 (実際は1926-1989)
+  const tN = eraYear(w, 1912);
   const sN = w >= 1926 ? eraYear(w, 1926) : null;
-  // 平成: 1989〜 (実際は1989-2019)
   const hN = w >= 1989 ? eraYear(w, 1989) : null;
-  // 令和: 2019〜
   const rN = w >= 2019 ? eraYear(w, 2019) : null;
 
   DATA.push({
@@ -183,7 +248,6 @@ for (let w = 1912; w <= 2100; w++) {
   });
 }
 
-// 実際に使われていた和暦かどうか（薄く表示するかの判定）
 function isActualEra(w, era) {
   if (era === 't') return w >= 1912 && w <= 1926;
   if (era === 's') return w >= 1926 && w <= 1989;
@@ -209,7 +273,6 @@ function buildRows() {
     var w = row.w;
     var tr = document.createElement('tr');
     tr.dataset.w = w;
-    // 検索用: 実際の和暦のみ検索対象にする
     tr.dataset.t = row.t.toLowerCase();
     tr.dataset.s = (row.s || '').toLowerCase();
     tr.dataset.h = (row.h || '').toLowerCase();
@@ -262,10 +325,8 @@ function buildRows() {
 function updateTodayBar() {
   var row = DATA.find(function(d) { return d.w === THISYEAR; });
   if (!row) return;
-  // 最新の実際の和暦を大きく表示
   var mainEra = row.r || row.h || row.s || row.t || '';
   document.getElementById('by').textContent = mainEra;
-  // 全和暦を列挙
   var parts = [];
   if (row.r) parts.push('令和' + row.r.slice(1) + '年');
   if (row.h) parts.push('平成' + row.h.slice(1) + '年');
@@ -281,7 +342,6 @@ function applyFilters(q, era) {
   rows.forEach(function(tr) {
     var w = tr.dataset.w;
     var t = tr.dataset.t, s = tr.dataset.s, h = tr.dataset.h, r = tr.dataset.r;
-    // フィルタ: その和暦が「実際に使われていた年」に絞る
     var eraMatch = true;
     if (era === 't') eraMatch = parseInt(w) >= 1912 && parseInt(w) <= 1926;
     else if (era === 's') eraMatch = parseInt(w) >= 1926 && parseInt(w) <= 1989;
